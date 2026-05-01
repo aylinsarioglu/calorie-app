@@ -7,6 +7,7 @@ import {
   type FormEvent,
 } from 'react'
 import './App.css'
+import { FOOD_DATA, type FoodItem } from '../foods'
 
 type Food = {
   id: string
@@ -160,6 +161,8 @@ function MealSectionList({
 function App() {
   const [foods, setFoods] = useState<Food[]>([])
   const [name, setName] = useState('')
+  const [search, setSearch] = useState('')
+  const [suggestions, setSuggestions] = useState<FoodItem[]>([])
   const [calories, setCalories] = useState<number>(EMPTY_CALORIES)
   const [meal, setMeal] = useState<MealType>('other')
   const [isAddFormOpen, setIsAddFormOpen] = useState(false)
@@ -204,11 +207,29 @@ function App() {
     setFoods((prev) => [...prev, newFood])
     setHighlightedFoodId(newFood.id)
     setName('')
+    setSearch('')
+    setSuggestions([])
     setCalories(EMPTY_CALORIES)
     setMeal('other')
     setShowValidation(false)
     setIsAddFormOpen(false)
   }, [isFormValid, name, calories, meal])
+
+  const handleSearch = useCallback((value: string) => {
+    setSearch(value)
+
+    if (value.trim() === '') {
+      setSuggestions([])
+      return
+    }
+
+    const normalizedSearch = value.toLowerCase()
+    const filteredFoods = FOOD_DATA.filter((food) =>
+      food.name.toLowerCase().includes(normalizedSearch)
+    ).slice(0, 5)
+
+    setSuggestions(filteredFoods)
+  }, [])
 
   useEffect(() => {
     if (!highlightedFoodId) return
@@ -218,10 +239,12 @@ function App() {
 
   const handleNameChange = useCallback(
     (event: ChangeEvent<HTMLInputElement>) => {
-      setName(event.target.value)
+      const value = event.target.value
+      setName(value)
+      handleSearch(value)
       setShowValidation(false)
     },
-    []
+    [handleSearch]
   )
 
   const handleCaloriesChange = useCallback(
@@ -268,10 +291,20 @@ function App() {
             <h2>Add Food</h2>
             <form className="form-row" onSubmit={handleAddFoodSubmit}>
               <input
-                value={name}
+                value={search}
                 onChange={handleNameChange}
                 placeholder="Food name"
               />
+              {search.trim() !== '' ? (
+                <div className="meal-items">
+                  {suggestions.map((food) => (
+                    <div key={food.name} className="meal-item">
+                      <span>{food.name}</span>
+                      <span>{food.calories} kcal</span>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
 
               <input
                 value={formatCaloriesInput(calories)}
