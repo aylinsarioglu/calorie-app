@@ -231,6 +231,14 @@ function App() {
     setSuggestions(filteredFoods)
   }, [])
 
+  const handleSuggestionSelect = useCallback((food: FoodItem) => {
+    setName(food.name)
+    setSearch(food.name)
+    setCalories(food.calories)
+    setSuggestions([])
+    setShowValidation(false)
+  }, [])
+
   useEffect(() => {
     if (!highlightedFoodId) return
     const timeoutId = window.setTimeout(() => setHighlightedFoodId(null), 1200)
@@ -295,13 +303,18 @@ function App() {
                 onChange={handleNameChange}
                 placeholder="Food name"
               />
-              {search.trim() !== '' ? (
+              {search.trim() !== '' && suggestions.length > 0 ? (
                 <div className="meal-items">
-                  {suggestions.map((food) => (
-                    <div key={food.name} className="meal-item">
+                  {suggestions.map((food, index) => (
+                    <button
+                      key={`${food.name}-${food.calories}-${index}`}
+                      type="button"
+                      className="meal-item"
+                      onClick={() => handleSuggestionSelect(food)}
+                    >
                       <span>{food.name}</span>
                       <span>{food.calories} kcal</span>
-                    </div>
+                    </button>
                   ))}
                 </div>
               ) : null}
