@@ -7,36 +7,23 @@ import {
   type FormEvent,
 } from 'react'
 import './App.css'
-import { FOOD_DATA, type FoodItem } from '../foods'
-
-type Food = {
-  id: string
-  name: string
-  calories: number
-  meal: 'breakfast' | 'lunch' | 'dinner' | 'other'
-}
-
-type MealType = Food['meal']
-
-type MealSection = {
-  title: MealType
-  foods: Food[]
-  totalCalories: number
-}
+import {
+  FOOD_DATA,
+  MEAL_LABELS,
+  MEAL_TITLES,
+  buildMealSections,
+  calculateTotalCalories,
+  createFood,
+  normalizeFoodName,
+  type Food,
+  type FoodItem,
+  type MealSectionData,
+  type MealType,
+} from '../foods'
 
 const EMPTY_CALORIES = NaN
 const MAX_CALORIES = 1_000_000_000
-const MAX_TOTAL_CALORIES = Number.MAX_SAFE_INTEGER
 const DAILY_CALORIE_GOAL = 2000
-const MEAL_TITLES: MealType[] = ['breakfast', 'lunch', 'dinner', 'other']
-const MEAL_LABELS: Record<MealType, string> = {
-  breakfast: 'Breakfast',
-  lunch: 'Lunch',
-  dinner: 'Dinner',
-  other: 'Other',
-}
-
-const normalizeFoodName = (value: string): string => value.trim()
 
 const isValidFoodName = (value: string): boolean => normalizeFoodName(value).length > 0
 
@@ -48,34 +35,6 @@ const parseCaloriesInput = (value: string): number =>
 
 const formatCaloriesInput = (value: number): string =>
   Number.isNaN(value) ? '' : String(value)
-
-const createUniqueId = (): string => {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID()
-  }
-
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
-}
-
-const createFood = (name: string, calories: number, meal: MealType): Food => ({
-  id: createUniqueId(),
-  name: normalizeFoodName(name),
-  calories,
-  meal,
-})
-
-const calculateTotalCalories = (foods: Food[]): number => {
-  let total = 0
-
-  for (const food of foods) {
-    total += food.calories
-    if (total >= MAX_TOTAL_CALORIES) {
-      return MAX_TOTAL_CALORIES
-    }
-  }
-
-  return total
-}
 
 function SummaryCard({
   eatenCalories,
@@ -125,7 +84,7 @@ function MealSectionList({
   sections,
   highlightedFoodId,
 }: {
-  sections: MealSection[]
+  sections: MealSectionData[]
   highlightedFoodId: string | null
 }) {
   return (
@@ -184,18 +143,7 @@ function App() {
   )
 
   const totalCalories = useMemo(() => calculateTotalCalories(foods), [foods])
-  const mealSections = useMemo<MealSection[]>(
-    () =>
-      MEAL_TITLES.map((title) => {
-        const sectionFoods = foods.filter((food) => food.meal === title)
-        return {
-          title,
-          foods: sectionFoods,
-          totalCalories: calculateTotalCalories(sectionFoods),
-        }
-      }),
-    [foods]
-  )
+  const mealSections = useMemo(() => buildMealSections(foods), [foods])
 
   const handleAddFood = useCallback(() => {
     if (!isFormValid) {
@@ -263,13 +211,6 @@ function App() {
     []
   )
 
-  const handleMealChange = useCallback(
-    (event: ChangeEvent<HTMLSelectElement>) => {
-      setMeal(event.target.value as MealType)
-    },
-    []
-  )
-
   const handleAddFoodSubmit = useCallback(
     (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault()
@@ -326,13 +267,20 @@ function App() {
                 type="number"
               />
 
-              <select value={meal} onChange={handleMealChange}>
+              <p className="meal-picker-label">Meal</p>
+              <div className="meal-picker" role="group" aria-label="Meal">
                 {MEAL_TITLES.map((mealType) => (
-                  <option key={mealType} value={mealType}>
+                  <button
+                    key={mealType}
+                    type="button"
+                    className={`meal-picker-btn${meal === mealType ? ' meal-picker-btn-active' : ''}`}
+                    onClick={() => setMeal(mealType)}
+                    aria-pressed={meal === mealType}
+                  >
                     {MEAL_LABELS[mealType]}
-                  </option>
+                  </button>
                 ))}
-              </select>
+              </div>
 
               <button type="submit" disabled={!isFormValid}>
                 Add

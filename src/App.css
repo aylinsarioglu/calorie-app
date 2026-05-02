@@ -191,8 +191,7 @@
 }
 
 .form-row input,
-.form-row select,
-.form-row button {
+.form-row select {
   border: 1px solid #d8e1dc;
   border-radius: 10px;
   padding: 11px 12px;
@@ -215,22 +214,58 @@
 }
 
 .form-row input:focus-visible,
-.form-row select:focus-visible {
+.form-row select:focus-visible,
+.form-row .meal-picker-btn:focus-visible {
   outline: 2px solid #b9dfc8;
   outline-offset: 1px;
   border-color: #9ed4b4;
 }
 
-.form-row button {
+.meal-picker-label {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-600);
+}
+
+.meal-picker {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.meal-picker-btn {
+  cursor: pointer;
+  border: 1px solid #d8e1dc;
+  border-radius: 10px;
+  padding: 10px 8px;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--surface-100);
+  color: var(--text-600);
+  box-sizing: border-box;
+}
+
+.meal-picker-btn-active {
+  border-color: #9ed4b4;
+  background: var(--green-100);
+  color: var(--green-900);
+}
+
+.form-row button[type='submit'] {
   cursor: pointer;
   border: none;
+  border-radius: 10px;
+  padding: 11px 12px;
+  font-size: 14px;
   background: var(--green-500);
   color: #ffffff;
   font-weight: 600;
   box-shadow: 0 6px 14px rgba(53, 168, 102, 0.25);
 }
 
-.form-row button:disabled {
+.form-row button[type='submit']:disabled {
   cursor: not-allowed;
   opacity: 0.45;
   box-shadow: none;
