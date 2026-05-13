@@ -9,15 +9,15 @@ import {
 import './App.css'
 import {
   FOOD_DATA,
+  MEAL_CATEGORIES,
   MEAL_LABELS,
-  MEAL_TITLES,
-  buildMealSections,
   calculateTotalCalories,
   createFood,
+  getFoodsForMeal,
   normalizeFoodName,
+  sumFoodCalories,
   type Food,
   type FoodItem,
-  type MealSectionData,
   type MealType,
 } from '../foods'
 
@@ -81,26 +81,39 @@ function SummaryCard({
 }
 
 function MealSectionList({
-  sections,
+  foods,
   highlightedFoodId,
 }: {
-  sections: MealSectionData[]
+  foods: Food[]
   highlightedFoodId: string | null
 }) {
+  const sections = useMemo(
+    () =>
+      MEAL_CATEGORIES.map((mealType) => {
+        const mealFoods = getFoodsForMeal(foods, mealType)
+        return {
+          mealType,
+          foods: mealFoods,
+          totalCalories: sumFoodCalories(mealFoods),
+        }
+      }),
+    [foods]
+  )
+
   return (
     <section className="meal-sections">
-      {sections.map((section) => (
-        <article key={section.title} className="meal-card">
+      {sections.map(({ mealType, foods: mealFoods, totalCalories }) => (
+        <article key={mealType} className="meal-card">
           <div className="meal-card-header">
-            <h3>{MEAL_LABELS[section.title]}</h3>
-            <span>{section.totalCalories} kcal</span>
+            <h3>{MEAL_LABELS[mealType]}</h3>
+            <span>{totalCalories} kcal</span>
           </div>
 
-          {section.foods.length === 0 ? (
+          {mealFoods.length === 0 ? (
             <p className="meal-empty">No items yet.</p>
           ) : (
             <div className="meal-items">
-              {section.foods.map((food) => (
+              {mealFoods.map((food) => (
                 <div
                   key={food.id}
                   className={`meal-item${highlightedFoodId === food.id ? ' meal-item-new' : ''}`}
@@ -123,7 +136,7 @@ function App() {
   const [search, setSearch] = useState('')
   const [suggestions, setSuggestions] = useState<FoodItem[]>([])
   const [calories, setCalories] = useState<number>(EMPTY_CALORIES)
-  const [meal, setMeal] = useState<MealType>('other')
+  const [meal, setMeal] = useState<MealType>('breakfast')
   const [isAddFormOpen, setIsAddFormOpen] = useState(false)
   const [showValidation, setShowValidation] = useState(false)
   const [highlightedFoodId, setHighlightedFoodId] = useState<string | null>(null)
@@ -143,7 +156,6 @@ function App() {
   )
 
   const totalCalories = useMemo(() => calculateTotalCalories(foods), [foods])
-  const mealSections = useMemo(() => buildMealSections(foods), [foods])
 
   const handleAddFood = useCallback(() => {
     if (!isFormValid) {
@@ -158,7 +170,7 @@ function App() {
     setSearch('')
     setSuggestions([])
     setCalories(EMPTY_CALORIES)
-    setMeal('other')
+    setMeal('breakfast')
     setShowValidation(false)
     setIsAddFormOpen(false)
   }, [isFormValid, name, calories, meal])
@@ -210,6 +222,10 @@ function App() {
     },
     []
   )
+
+  const handleMealChange = useCallback((event: ChangeEvent<HTMLSelectElement>) => {
+    setMeal(event.target.value as MealType)
+  }, [])
 
   const handleAddFoodSubmit = useCallback(
     (event: FormEvent<HTMLFormElement>) => {
@@ -267,20 +283,21 @@ function App() {
                 type="number"
               />
 
-              <p className="meal-picker-label">Meal</p>
-              <div className="meal-picker" role="group" aria-label="Meal">
-                {MEAL_TITLES.map((mealType) => (
-                  <button
-                    key={mealType}
-                    type="button"
-                    className={`meal-picker-btn${meal === mealType ? ' meal-picker-btn-active' : ''}`}
-                    onClick={() => setMeal(mealType)}
-                    aria-pressed={meal === mealType}
-                  >
+              <label htmlFor="meal-select" className="meal-picker-label">
+                Meal
+              </label>
+              <select
+                id="meal-select"
+                value={meal}
+                onChange={handleMealChange}
+                aria-label="Meal"
+              >
+                {MEAL_CATEGORIES.map((mealType) => (
+                  <option key={mealType} value={mealType}>
                     {MEAL_LABELS[mealType]}
-                  </button>
+                  </option>
                 ))}
-              </div>
+              </select>
 
               <button type="submit" disabled={!isFormValid}>
                 Add
@@ -296,10 +313,7 @@ function App() {
 
         <section className="foods-section">
           <h2>Meals</h2>
-          <MealSectionList
-            sections={mealSections}
-            highlightedFoodId={highlightedFoodId}
-          />
+          <MealSectionList foods={foods} highlightedFoodId={highlightedFoodId} />
         </section>
 
         <button

@@ -12,7 +12,8 @@ export type Food = {
   meal: MealType
 }
 
-export const MEAL_TITLES: MealType[] = ['breakfast', 'lunch', 'dinner', 'other']
+/** Display order for meal buckets in the UI. */
+export const MEAL_CATEGORIES: MealType[] = ['breakfast', 'lunch', 'dinner', 'other']
 
 export const MEAL_LABELS: Record<MealType, string> = {
   breakfast: 'Breakfast',
@@ -44,37 +45,12 @@ export function calculateTotalCalories(foods: Food[]): number {
   return total
 }
 
-export type MealSectionData = {
-  title: MealType
-  foods: Food[]
-  totalCalories: number
+export function getFoodsForMeal(foods: Food[], meal: MealType): Food[] {
+  return foods.filter((food) => food.meal === meal)
 }
 
-/** Single pass: bucket foods and sum calories per meal (no repeated filters). */
-export function buildMealSections(foods: Food[]): MealSectionData[] {
-  const buckets: Record<MealType, Food[]> = {
-    breakfast: [],
-    lunch: [],
-    dinner: [],
-    other: [],
-  }
-  const totals: Record<MealType, number> = {
-    breakfast: 0,
-    lunch: 0,
-    dinner: 0,
-    other: 0,
-  }
-
-  for (const food of foods) {
-    buckets[food.meal].push(food)
-    totals[food.meal] += food.calories
-  }
-
-  return MEAL_TITLES.map((title) => ({
-    title,
-    foods: buckets[title],
-    totalCalories: totals[title],
-  }))
+export function sumFoodCalories(foods: Food[]): number {
+  return foods.reduce((sum, food) => sum + food.calories, 0)
 }
 
 function createUniqueId(): string {
