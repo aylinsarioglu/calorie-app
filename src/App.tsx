@@ -24,11 +24,70 @@ import {
 const EMPTY_CALORIES = NaN
 const MAX_CALORIES = 1_000_000_000
 const DAILY_CALORIE_GOAL = 2000
+const FOODS_STORAGE_KEY = 'calorie-app-foods'
 
 const isValidFoodName = (value: string): boolean => normalizeFoodName(value).length > 0
 
 const isValidCalories = (value: number): boolean =>
   Number.isFinite(value) && value > 0 && value <= MAX_CALORIES
+
+const isMealType = (value: unknown): value is MealType =>
+  typeof value === 'string' && MEAL_CATEGORIES.includes(value as MealType)
+
+function isValidStoredFood(value: unknown): value is Food {
+  if (value === null || typeof value !== 'object') return false
+  const record = value as Record<string, unknown>
+  const id = record.id
+  const name = record.name
+  const calories = record.calories
+  const meal = record.meal
+  if (typeof id !== 'string' || id.trim() === '') return false
+  if (typeof name !== 'string' || !isValidFoodName(name)) return false
+  if (typeof calories !== 'number' || !isValidCalories(calories)) return false
+  if (!isMealType(meal)) return false
+  return true
+}
+
+function loadPersistedFoods(): Food[] {
+  if (typeof window === 'undefined') return []
+  let raw: string | null
+  try {
+    raw = window.localStorage.getItem(FOODS_STORAGE_KEY)
+  } catch {
+    return []
+  }
+  if (raw == null || raw === '') return []
+
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(raw)
+  } catch {
+    return []
+  }
+
+  if (!Array.isArray(parsed)) return []
+
+  const result: Food[] = []
+  for (const item of parsed) {
+    if (!isValidStoredFood(item)) continue
+    result.push({
+      id: item.id.trim(),
+      name: normalizeFoodName(item.name),
+      calories: item.calories,
+      meal: item.meal,
+    })
+  }
+  return result
+}
+
+function persistFoods(foods: Food[]): void {
+  if (typeof window === 'undefined') return
+  try {
+    window.localStorage.setItem(FOODS_STORAGE_KEY, JSON.stringify(foods))
+  } catch {
+    // Quota, private mode, or disabled storage — keep in-memory state only
+  }
+}
 
 const parseCaloriesInput = (value: string): number =>
   value === '' ? EMPTY_CALORIES : Number(value)
@@ -131,7 +190,7 @@ function MealSectionList({
 }
 
 function App() {
-  const [foods, setFoods] = useState<Food[]>([])
+  const [foods, setFoods] = useState<Food[]>(loadPersistedFoods)
   const [name, setName] = useState('')
   const [search, setSearch] = useState('')
   const [suggestions, setSuggestions] = useState<FoodItem[]>([])
@@ -198,6 +257,10 @@ function App() {
     setSuggestions([])
     setShowValidation(false)
   }, [])
+
+  useEffect(() => {
+    persistFoods(foods)
+  }, [foods])
 
   useEffect(() => {
     if (!highlightedFoodId) return
