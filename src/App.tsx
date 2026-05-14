@@ -80,15 +80,6 @@ function loadPersistedFoods(): Food[] {
   return result
 }
 
-function persistFoods(foods: Food[]): void {
-  if (typeof window === 'undefined') return
-  try {
-    window.localStorage.setItem(FOODS_STORAGE_KEY, JSON.stringify(foods))
-  } catch {
-    // Quota, private mode, or disabled storage — keep in-memory state only
-  }
-}
-
 const parseCaloriesInput = (value: string): number =>
   value === '' ? EMPTY_CALORIES : Number(value)
 
@@ -259,7 +250,12 @@ function App() {
   }, [])
 
   useEffect(() => {
-    persistFoods(foods)
+    if (typeof window === 'undefined') return
+    try {
+      window.localStorage.setItem(FOODS_STORAGE_KEY, JSON.stringify(foods))
+    } catch {
+      // ignore quota / private mode
+    }
   }, [foods])
 
   useEffect(() => {
