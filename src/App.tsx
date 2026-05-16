@@ -14,6 +14,8 @@ import {
   calculateTotalCalories,
   createFood,
   getFoodsForMeal,
+  getTodayDateString,
+  isValidFoodDate,
   normalizeFoodName,
   sumFoodCalories,
   type Food,
@@ -41,10 +43,12 @@ function isValidStoredFood(value: unknown): value is Food {
   const name = record.name
   const calories = record.calories
   const meal = record.meal
+  const date = record.date
   if (typeof id !== 'string' || id.trim() === '') return false
   if (typeof name !== 'string' || !isValidFoodName(name)) return false
   if (typeof calories !== 'number' || !isValidCalories(calories)) return false
   if (!isMealType(meal)) return false
+  if (date !== undefined && (typeof date !== 'string' || !isValidFoodDate(date))) return false
   return true
 }
 
@@ -75,6 +79,10 @@ function loadPersistedFoods(): Food[] {
       name: normalizeFoodName(item.name),
       calories: item.calories,
       meal: item.meal,
+      date:
+        typeof item.date === 'string' && isValidFoodDate(item.date)
+          ? item.date
+          : getTodayDateString(),
     })
   }
   return result

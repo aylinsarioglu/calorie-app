@@ -10,6 +10,28 @@ export type Food = {
   name: string
   calories: number
   meal: MealType
+  date: string
+}
+
+const FOOD_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
+
+export function isValidFoodDate(value: string): boolean {
+  if (!FOOD_DATE_PATTERN.test(value)) return false
+  const [year, month, day] = value.split('-').map(Number)
+  const parsed = new Date(year, month - 1, day)
+  return (
+    parsed.getFullYear() === year &&
+    parsed.getMonth() === month - 1 &&
+    parsed.getDate() === day
+  )
+}
+
+export function getTodayDateString(): string {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
 }
 
 /** Display order for meal buckets in the UI. */
@@ -71,5 +93,6 @@ export function createFood(name: string, calories: number, meal: MealType): Food
     name: normalizeFoodName(name),
     calories,
     meal,
+    date: getTodayDateString(),
   }
 }
