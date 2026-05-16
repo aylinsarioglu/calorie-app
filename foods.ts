@@ -67,6 +67,10 @@ export function calculateTotalCalories(foods: Food[]): number {
   return total
 }
 
+export function getFoodsForDate(foods: Food[], date: string): Food[] {
+  return foods.filter((food) => food.date === date)
+}
+
 export function getFoodsForMeal(foods: Food[], meal: MealType): Food[] {
   return foods.filter((food) => food.meal === meal)
 }

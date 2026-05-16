@@ -13,6 +13,7 @@ import {
   MEAL_LABELS,
   calculateTotalCalories,
   createFood,
+  getFoodsForDate,
   getFoodsForMeal,
   getTodayDateString,
   isValidFoodDate,
@@ -208,12 +209,16 @@ function App() {
     []
   )
 
+  const today = getTodayDateString()
+
+  const todaysFoods = useMemo(() => getFoodsForDate(foods, today), [foods, today])
+
   const isFormValid = useMemo(
     () => isValidFoodName(name) && isValidCalories(calories),
     [name, calories]
   )
 
-  const totalCalories = useMemo(() => calculateTotalCalories(foods), [foods])
+  const totalCalories = useMemo(() => calculateTotalCalories(todaysFoods), [todaysFoods])
 
   const handleAddFood = useCallback(() => {
     if (!isFormValid) {
@@ -315,7 +320,7 @@ function App() {
         <section className="summary-section">
           <h2>Summary</h2>
           <p>Total Calories: {totalCalories} kcal</p>
-          <p>Items: {foods.length}</p>
+          <p>Items: {todaysFoods.length}</p>
         </section>
 
         {isAddFormOpen ? (
@@ -380,7 +385,7 @@ function App() {
 
         <section className="foods-section">
           <h2>Meals</h2>
-          <MealSectionList foods={foods} highlightedFoodId={highlightedFoodId} />
+          <MealSectionList foods={todaysFoods} highlightedFoodId={highlightedFoodId} />
         </section>
 
         <button
