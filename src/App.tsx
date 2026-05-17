@@ -11,6 +11,8 @@ import {
   FOOD_DATA,
   MEAL_CATEGORIES,
   MEAL_LABELS,
+  calculateCalorieProgressPercentage,
+  calculateRemainingCalories,
   calculateTotalCalories,
   createFood,
   getFoodsForDate,
@@ -26,12 +28,15 @@ import {
 
 const EMPTY_CALORIES = NaN
 const MAX_CALORIES = 1_000_000_000
-const DAILY_CALORIE_GOAL = 2000
+const DEFAULT_DAILY_GOAL = 2000
 const FOODS_STORAGE_KEY = 'calorie-app-foods'
 
 const isValidFoodName = (value: string): boolean => normalizeFoodName(value).length > 0
 
 const isValidCalories = (value: number): boolean =>
+  Number.isFinite(value) && value > 0 && value <= MAX_CALORIES
+
+const isValidDailyGoal = (value: number): boolean =>
   Number.isFinite(value) && value > 0 && value <= MAX_CALORIES
 
 const isMealType = (value: unknown): value is MealType =>
@@ -97,19 +102,18 @@ const formatCaloriesInput = (value: number): string =>
 
 function SummaryCard({
   eatenCalories,
-  goalCalories,
+  remainingCalories,
+  progressPercentage,
 }: {
   eatenCalories: number
-  goalCalories: number
+  remainingCalories: number
+  progressPercentage: number
 }) {
-  const remainingCalories = goalCalories - eatenCalories
-  const progress = goalCalories > 0 ? (eatenCalories / goalCalories) * 100 : 0
-  const normalizedProgress = Math.min(Math.max(progress, 0), 100)
-  const progressPercentage = Math.round(normalizedProgress)
+  const progressDisplay = Math.round(progressPercentage)
   const ringRadius = 34
   const ringCircumference = 2 * Math.PI * ringRadius
   const ringOffset =
-    ringCircumference - (normalizedProgress / 100) * ringCircumference
+    ringCircumference - (progressPercentage / 100) * ringCircumference
 
   return (
     <section className="summary-card">
@@ -119,7 +123,7 @@ function SummaryCard({
         <p className="summary-card-remaining">{remainingCalories} kcal remaining</p>
       </div>
 
-      <div className="summary-progress" aria-label={`${progressPercentage}% of daily goal`}>
+      <div className="summary-progress" aria-label={`${progressDisplay}% of daily goal`}>
         <svg viewBox="0 0 80 80" className="summary-progress-svg" role="img">
           <circle className="summary-progress-track" cx="40" cy="40" r={ringRadius} />
           <circle
@@ -132,7 +136,7 @@ function SummaryCard({
           />
         </svg>
         <div className="summary-progress-inner">
-          <span>{progressPercentage}%</span>
+          <span>{progressDisplay}%</span>
         </div>
       </div>
     </section>
@@ -199,6 +203,8 @@ function App() {
   const [isAddFormOpen, setIsAddFormOpen] = useState(false)
   const [showValidation, setShowValidation] = useState(false)
   const [highlightedFoodId, setHighlightedFoodId] = useState<string | null>(null)
+  const [dailyGoal, setDailyGoal] = useState(DEFAULT_DAILY_GOAL)
+  const [goalInput, setGoalInput] = useState(String(DEFAULT_DAILY_GOAL))
   const currentDate = useMemo(
     () =>
       new Intl.DateTimeFormat('en-US', {
@@ -219,6 +225,16 @@ function App() {
   )
 
   const totalCalories = useMemo(() => calculateTotalCalories(todaysFoods), [todaysFoods])
+
+  const remainingCalories = useMemo(
+    () => calculateRemainingCalories(dailyGoal, totalCalories),
+    [dailyGoal, totalCalories]
+  )
+
+  const progressPercentage = useMemo(
+    () => calculateCalorieProgressPercentage(totalCalories, dailyGoal),
+    [totalCalories, dailyGoal]
+  )
 
   const handleAddFood = useCallback(() => {
     if (!isFormValid) {
@@ -299,6 +315,20 @@ function App() {
     setMeal(event.target.value as MealType)
   }, [])
 
+  const handleDailyGoalChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
+    const value = event.target.value
+    setGoalInput(value)
+    if (value === '') return
+    const parsed = Number(value)
+    if (isValidDailyGoal(parsed)) {
+      setDailyGoal(parsed)
+    }
+  }, [])
+
+  const handleDailyGoalBlur = useCallback(() => {
+    setGoalInput(String(dailyGoal))
+  }, [dailyGoal])
+
   const handleAddFoodSubmit = useCallback(
     (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault()
@@ -315,12 +345,33 @@ function App() {
           <h1 className="header-date">{currentDate}</h1>
         </header>
 
-        <SummaryCard eatenCalories={totalCalories} goalCalories={DAILY_CALORIE_GOAL} />
+        <SummaryCard
+          eatenCalories={totalCalories}
+          remainingCalories={remainingCalories}
+          progressPercentage={progressPercentage}
+        />
 
         <section className="summary-section">
           <h2>Summary</h2>
-          <p>Total Calories: {totalCalories} kcal</p>
+          <p>Total calories: {totalCalories} kcal</p>
+          <p>Remaining calories: {remainingCalories} kcal</p>
           <p>Items: {todaysFoods.length}</p>
+          <div className="form-row">
+            <label htmlFor="daily-goal-input" className="meal-picker-label">
+              Daily calorie goal
+            </label>
+            <input
+              id="daily-goal-input"
+              type="number"
+              min={1}
+              max={MAX_CALORIES}
+              step={1}
+              value={goalInput}
+              onChange={handleDailyGoalChange}
+              onBlur={handleDailyGoalBlur}
+              aria-label="Daily calorie goal"
+            />
+          </div>
         </section>
 
         {isAddFormOpen ? (

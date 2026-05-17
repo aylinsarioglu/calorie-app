@@ -67,6 +67,20 @@ export function calculateTotalCalories(foods: Food[]): number {
   return total
 }
 
+export function calculateRemainingCalories(dailyGoal: number, totalCalories: number): number {
+  return dailyGoal - totalCalories
+}
+
+export function calculateCalorieProgressPercentage(
+  totalCalories: number,
+  dailyGoal: number
+): number {
+  if (dailyGoal <= 0) return 0
+
+  const percentage = (totalCalories / dailyGoal) * 100
+  return Math.min(Math.max(percentage, 0), 100)
+}
+
 export function getFoodsForDate(foods: Food[], date: string): Food[] {
   return foods.filter((food) => food.date === date)
 }
